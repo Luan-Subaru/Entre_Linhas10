@@ -1,112 +1,207 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import * as ImagePicker from 'expo-image-picker'; // biblioteca para fotos
+import { auth, db } from '../../config/firebase.js'; // conexao com firebase
+import { doc, getDoc } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons'; // icones nativos do expo
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+export default function ExploreScreen() {
+  const [usuario, setUsuario] = useState<any>(null);
+  const [carregando, setCarregando] = useState(true);
+  const [foto, setFoto] = useState<string | null>(null);
 
-export default function TabTwoScreen() {
+  // busca dados do usuario ao abrir a tela
+  useEffect(() => {
+    const buscarDados = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        const docRef = doc(db, 'usuarios', user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setUsuario(docSnap.data());
+        }
+      }
+      setCarregando(false);
+    };
+    buscarDados();
+  }, []);
+
+  // funcao para escolher foto da galeria ou tirar agora
+  const escolherFoto = async () => {
+    Alert.alert(
+      "Foto de Perfil",
+      "Deseja tirar uma foto nova ou escolher da galeria?",
+      [
+        { text: "Camera", onPress: () => abrirCamera() },
+        { text: "Galeria", onPress: () => abrirGaleria() },
+        { text: "Cancelar", style: "cancel" }
+      ]
+    );
+  };
+
+  const abrirCamera = async () => {
+    const permissao = await ImagePicker.requestCameraPermissionsAsync();
+    if (permissao.granted === false) {
+      Alert.alert("Erro", "Precisamos de acesso a camera");
+      return;
+    }
+    const resultado = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+    if (!resultado.canceled) {
+      setFoto(resultado.assets[0].uri);
+    }
+  };
+
+  const abrirGaleria = async () => {
+    const resultado = await ImagePicker.launchImageLibraryAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+    if (!resultado.canceled) {
+      setFoto(resultado.assets[0].uri);
+    }
+  };
+
+  // funcao para deslogar
+  const lidarComSair = () => {
+    signOut(auth).then(() => {
+      router.replace('/login');
+    });
+  };
+
+  if (carregando) {
+    return (
+      <View style={styles.containerCentralizado}>
+        <ActivityIndicator size="large" color="#a52a2a" />
+      </View>
+    );
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <ScrollView contentContainerStyle={styles.container}>
+      {/* area do perfil com foto e nome */}
+      <View style={styles.cabecalhoPerfil}>
+        <TouchableOpacity onPress={escolherFoto}>
+          <View style={styles.molduraFoto}>
+            {foto ? (
+              <Image source={{ uri: foto }} style={styles.fotoPerfil} />
+            ) : (
+              <Ionicons name="camera" size={40} color="#a52a2a" />
+            )}
+          </View>
+          <Text style={styles.textoMudarFoto}>mudar foto</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.nomeUsuario}>{usuario?.nome} {usuario?.sobrenome}</Text>
+        <Text style={styles.emailUsuario}>{usuario?.email}</Text>
+      </View>
+
+      {/* menu de opcoes */}
+      <View style={styles.menuOpcoes}>
+        <TouchableOpacity style={styles.itemMenu}>
+          <Ionicons name="heart" size={24} color="#a52a2a" />
+          <Text style={styles.textoItemMenu}>meus favoritos</Text>
+          <Ionicons name="chevron-forward" size={20} color="#ccc" />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.itemMenu}>
+          <Ionicons name="chatbubbles" size={24} color="#a52a2a" />
+          <Text style={styles.textoItemMenu}>meus comentarios</Text>
+          <Ionicons name="chevron-forward" size={20} color="#ccc" />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.itemMenu}>
+          <Ionicons name="people" size={24} color="#a52a2a" />
+          <Text style={styles.textoItemMenu}>amigos</Text>
+          <Ionicons name="chevron-forward" size={20} color="#ccc" />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.itemMenu, styles.itemSair]} onPress={lidarComSair}>
+          <Ionicons name="log-out" size={24} color="#ff4444" />
+          <Text style={[styles.textoItemMenu, { color: '#ff4444' }]}>sair da conta</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flexGrow: 1,
+    backgroundColor: '#fff3dd',
+    padding: 20,
+    paddingTop: 60,
   },
-  titleContainer: {
+  containerCentralizado: {
+    flex: 1,
+    backgroundColor: '#fff3dd',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cabecalhoPerfil: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  molduraFoto: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#a52a2a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  fotoPerfil: {
+    width: '100%',
+    height: '100%',
+  },
+  textoMudarFoto: {
+    textAlign: 'center',
+    color: '#a52a2a',
+    fontSize: 12,
+    marginTop: 5,
+  },
+  nomeUsuario: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#3e2723',
+    marginTop: 15,
+  },
+  emailUsuario: {
+    fontSize: 14,
+    color: '#777',
+  },
+  menuOpcoes: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 10,
+    elevation: 2,
+  },
+  itemMenu: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
+  itemSair: {
+    borderBottomWidth: 0,
+    marginTop: 10,
+  },
+  textoItemMenu: {
+    flex: 1,
+    marginLeft: 15,
+    fontSize: 16,
+    color: '#3e2723',
+  }
 });

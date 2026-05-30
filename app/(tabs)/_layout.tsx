@@ -1,35 +1,55 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { Tabs, router } from 'expo-router';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../../config/firebase.js'; // sobe duas pastas para achar o firebase
+import { ActivityIndicator, View, StyleSheet } from 'react-native';
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+export default function TabsLayout() {
+  const [carregando, setCarregando] = useState(true);
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  useEffect(() => {
+    // monitora em tempo real se o usuario esta logado no firebase
+    const desinscrever = onAuthStateChanged(auth, (usuario) => {
+      if (!usuario) {
+        // se nao houver usuario logado chuta ele direto para tela de login
+        router.replace('/login');
+      }
+      // encerra a tela de carregamento
+      setCarregando(false);
+    });
 
+    // limpa o monitorador ao fechar o componente
+    return desinscrever;
+  }, []);
+
+  // enquanto o firebase responde mostra um icone de carregando na tela creme
+  if (carregando) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#a52a2a" />
+      </View>
+    );
+  }
+
+  // estrutura de abas do menu inferior do aplicativo
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
+    <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: '#a52a2a' }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Inicio',
         }}
       />
     </Tabs>
   );
 }
+
+// estilos da tela de carregamento inicial
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff3dd', // cor creme padrao do entre linhas
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
