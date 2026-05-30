@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
-import * as ImagePicker from 'expo-image-picker'; // biblioteca para fotos
-import { auth, db } from '../../config/firebase.js'; // conexao com firebase
-import { doc, getDoc } from 'firebase/firestore';
-import { signOut } from 'firebase/auth';
-import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons'; // icones nativos do expo
+import * as ImagePicker from 'expo-image-picker'; // biblioteca para fotos
+import { router } from 'expo-router';
+import { signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { auth, db } from '../../config/firebase.js'; // conexao com firebase
 
 export default function ExploreScreen() {
   const [usuario, setUsuario] = useState<any>(null);
@@ -98,7 +98,7 @@ export default function ExploreScreen() {
           <Text style={styles.textoMudarFoto}>mudar foto</Text>
         </TouchableOpacity>
 
-        <Text style={styles.nomeUsuario}>{usuario?.nome} {usuario?.sobrenome}</Text>
+        <Text style={styles.nomeUsuario}>{usuario?.nome}{usuario?.sobrenome}</Text>
         <Text style={styles.emailUsuario}>{usuario?.email}</Text>
       </View>
 
