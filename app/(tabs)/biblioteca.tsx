@@ -331,7 +331,7 @@ vivia olhando ou jogava. Uma ou outra vez dizia pilh´erias.'
     autor: 'Aluísio Azevedo',
     capa: 'https://m.media-amazon.com/images/I/81S6UqWv9DL._AC_UF1000,1000_QL80_.jpg',
     descricao: 'O cotidiano e a degradação dos moradores de um cortiço no Rio de Janeiro.',
-    conteudo: 'O Cortiço — Capítulo I (Trecho Expandido)
+    conteudo: 'O Cortiço — Capítulo I 
 João Romão foi, dos treze aos vinte e cinco anos, empregado de um vendeiro que enriqueceu entre as quatro paredes de uma suja e obscura taverna nos refolhos do bairro de Botafogo; e tanto economizou do pouco que ganhara nessa dúzia de anos, que, ao retirar-se o patrão para a terra, pôde comprar o estabelecimento por uma quantia que não chegava a um terço do que ele realmente valia.  
 
 Dali por diante, a sua vida foi um desespero de acumular dinheiro. Almoçava pão dormido e pontas de queijo; jantava azeite, feijão e farinha; a sua única despesa de luxo era o fumo de rolo, de que gastava dois tostões por semana. Dormia sobre o balcão da taverna, em cima de uma esteira rasgada, tendo por travesseiro um saco de estopas cheio de palha de milho. Não vinha nunca à rua senão para ir às compras no mercado; trazia as calças arregaçadas para não as sujar e andava descalço, descarregando ele próprio as carroças e arrumando os caixotes no armazém.
