@@ -331,7 +331,59 @@ vivia olhando ou jogava. Uma ou outra vez dizia pilh´erias.'
     autor: 'Aluísio Azevedo',
     capa: 'https://m.media-amazon.com/images/I/81S6UqWv9DL._AC_UF1000,1000_QL80_.jpg',
     descricao: 'O cotidiano e a degradação dos moradores de um cortiço no Rio de Janeiro.',
-    conteudo: 'João Romão foi, dos treze aos vinte e cinco anos, empregado de um vendeiro que enriquecera entre as quatro paredes de uma suja e escura taverna. Quando o patrão se retirou para a terra, João Romão ficou com o negócio...'
+    conteudo: 'O Cortiço — Capítulo I (Trecho Expandido)
+João Romão foi, dos treze aos vinte e cinco anos, empregado de um vendeiro que enriqueceu entre as quatro paredes de uma suja e obscura taverna nos refolhos do bairro de Botafogo; e tanto economizou do pouco que ganhara nessa dúzia de anos, que, ao retirar-se o patrão para a terra, pôde comprar o estabelecimento por uma quantia que não chegava a um terço do que ele realmente valia.  
+
+Dali por diante, a sua vida foi um desespero de acumular dinheiro. Almoçava pão dormido e pontas de queijo; jantava azeite, feijão e farinha; a sua única despesa de luxo era o fumo de rolo, de que gastava dois tostões por semana. Dormia sobre o balcão da taverna, em cima de uma esteira rasgada, tendo por travesseiro um saco de estopas cheio de palha de milho. Não vinha nunca à rua senão para ir às compras no mercado; trazia as calças arregaçadas para não as sujar e andava descalço, descarregando ele próprio as carroças e arrumando os caixotes no armazém.
+
+Por esse tempo, havia ao lado da taverna, à esquerda, uma quitandeira, preta, quase velha, chamada Bertoleza. Essa mulher, que era escrava de um velho cego residente em Juiz de Fora, vivia ali na cidade há muitos anos, à mercê de um jornal que pagava pontualmente ao seu senhor. Ganhara com que fartar o corpo e ainda lhe sobrava uma economiazita, que ela guardava em uma meia de lã, por baixo do colchão, com o fim de comprar um dia a sua liberdade.
+
+João Romão propôs-lhe sociedade. Bertoleza aceitou, mudando-se com as suas panelas e os seus balaios para a taverna. Ela entrava com o trabalho e o seu pecúlio; ele com o estabelecimento e com a sua gerência. Daí em diante, as coisas correram de vento em popa. A crioula era uma verdadeira máquina de ganhar dinheiro; trabalhava das quatro da manhã às dez da noite, lavando, cozinhando, vendendo na quitanda e estendendo a roupa no varal.
+
+Quando João Romão soube que a meia de lã da preta continha já a soma necessária para a alforria, propôs-se ele próprio a ir comprá-la ao senhor em Juiz de Fora. Fingiu que fizera a transação e entregou à crioula um papel falsificado como sendo a carta de liberdade. Bertoleza, que não sabia ler, chorou de gratidão e entregou-se de corpo e alma ao seu "salvador".
+
+Atrás da taverna de João Romão estendia-se um grande terreno baldio, que ele conseguiu comprar por uma bagatela. Foi nesse terreno que o taverneiro começou a erguer o seu império. Comprou uma pedreira nos fundos e começou a vender pedra; com os lucros da pedreira e da taverna, comprou materiais de refugo e construiu as três primeiras casinhas de aluguel.
+
+Eram três casinhas de porta e janela, feias, malfeitas, mas que se alugaram num abrir e fechar de olhos. João Romão viu ali a sua mina de ouro. Construiu mais seis, depois mais doze, depois trinta. Em menos de cinco anos, o terreno baldio transformara-se numa imensa estalagem, uma verdadeira colmeia humana.
+
+E naquela terra encharcada e fumegante, naquela umidade quente e lodosa, começou a minhocar, a esfervilhar, a crescer, um mundo, uma coisa viva, uma geração, que parecia brotar espontânea, ali mesmo, daquele lameiro, e multiplicar-se como larvas no esterco.
+
+Ao lado do cortiço, comprou também um terreno o Sr. Miranda, negociante de fazendas por atacado, português enrichmentado, que ali ergueu um belo palacete, com jardim e cocheira. Entre a casa rica de Miranda e a estalagem miserável de João Romão começou logo uma guerra surda e implacável de vizinhos, nascida do orgulho ferido do burguês, que não tolerava viver parede meia com a gentalha do cortiço, e da avareza do taverneiro, que não perdia uma polegada de terreno que pudesse render-lhe um tostão.
+
+(...)
+
+Às cinco horas da manhã o cortiço acordava, acendendo os seus primeiros fogos. O rumor crescia; começava o trabalho. Vinham as lavadeiras para as tinas; os pedreiros e os carpinteiros saíam com as suas ferramentas a tiracolo; os caixeiros de taverna varriam as calçadas.
+
+Era o acordar da colmeia. Um acordar alegre, ruidoso, cheio de uma vitalidade animal.
+
+As lavadeiras, de braços nus, metidas em saias de riscado, começavam a ensaboar as roupas nas tinas de pedra, cantando modinhas e fados. A água corria pelos canos, ensaboada e espumosa, levando o cheiro de sabão da Costa e de gordura. O chão do pátio ficava logo inundado, refletindo o céu azul da manhã.
+
+— Ó de casa! dize ao teu homem que me mude esta tina! — gritava uma.
+— Sai daí, rapariga, que me estás salpicando a roupa limpa! — respondia outra de mais longe.
+
+No meio daquele alvoroço, cruzavam-se os homens que iam para o trabalho. Uns engoliam à pressa um trago de parati na taverna de João Romão; outros compravam um tostão de pão dormido na quitanda de Bertoleza.
+
+A filha da vizinha, a Pombinha, uma moça pálida, educada, que todos respeitavam no cortiço por saber ler e escrever e por estar de casamento marcado com um caixeiro, passava timidamente entre as lavadeiras, a caminho da sua costura.
+
+— Deus a leve em bem, menina! — diziam as mulheres, interrompendo o canto para vê-la passar. Pombinha agradecia com um sorriso doce e sumia-se no portão.
+
+Mais adiante, na última casinha do corredor, morava a Rita Baiana. Era a mulata mais cobiçada do cortiço, que passava os dias a cantarolar e a rir, com os seus dentes claríssimos e os seus olhos acesos de desejo. Quando ela aparecia à porta, de braços cruzados, balanceando os quadris, o pátio inteiro parecia parar para olhá-la. Os homens suspendiam o trabalho e as outras mulheres olhavam-no com uma ponta de inveja e admiração.
+
+João Romão, do alto do seu balcão, vigiava tudo. Nada lhe escapava: nem a tina que quebrava, nem o aluguel que atrasava, nem o pedaço de pão que Bertoleza porventura comesse a mais. O seu olho clínico e avarento computava cada gota de suor daquela gente em moedas de ouro que iam enriquecer a sua arca de ferro.
+
+O sol, entretanto, ia subindo no horizonte, crestante e impiedoso. O calor começava a abafar o cortiço. A poeira da pedreira subia em nuvens brancas, sufocando os trabalhadores que quebravam o granito a golpes de picareta. O cheiro de suor humano, misturado ao cheiro da comida que começava a ferver nas panelas de barro e ao odor fétido das latrinas, formava uma atmosfera pesada, uma névoa quente que pairava sobre a estalagem.
+
+Miranda, do seu palacete, olhava com nojo pela janela do andar superior. Via aquela miséria fervilhante, ouvia aquela gritaria de mulheres, aquele linguajar rústico e obsceno, e sentia-se insultado na sua dignidade de comendador. Jurava a si mesmo que haveria de correr com João Romão dali, ou comprar-lhe a propriedade por qualquer preço, para limpar o seu bairro daquela praga.
+
+Mas João Romão não se importava com os olhares do vizinho rico. Pelo contrário, cada tijolo que assentava no seu terreno, cada nova casinha que cobria de telhas, era uma vitória contra o palacete do Miranda. Sabia que o futuro lhe pertencia e que, enquanto o comendador gastava o seu dinheiro em carruagens e jantares luxuosos, ele, João Romão, ia acumulando o capital que um dia o faria senhor de tudo e de todos ali em Botafogo.
+
+À noite, o ritmo do cortiço mudava. O trabalho pesado cessava, mas a atividade não parava. O pátio enchia-se novamente, mas agora para o descanso e para a festa. Os homens sentavam-se às portas das casinhas, fumando os seus cachimbos de barro e conversando sobre a jornada de trabalho. As lavadeiras, cansadas de passar o dia de pé junto às tinas, estendiam esteiras no chão e catavam piolhos na cabeça dos filhos.
+
+Era então que surgiam os violões. Alguém começava a pontear uma corda, timidamente, num canto do pátio. Outro acompanhava de longe. Daí a pouco, a música espalhava-se por todo o cortiço, atraindo os moradores como um ímã.
+
+Rita Baiana aparecia na roda, com a sua saia branca engomada e os seus brincos de ouro que faiscavam à luz dos lampiões de querosene. Começava o chorado, a dança sensual e frenética que fazia ferver o sangue daquela gente. Os corpos balançavam-se no ritmo da música, os pés batiam no chão de terra batida, e o cortiço esquecia, por algumas horas, a miséria, o cansaço e a exploração do dia a dia, entregando-se inteiramente ao prazer bruto e violento da vida.
+
+E João Romão, fechado na sua taverna, contava o dinheiro do dia, ouvindo de longe o som dos violões e as gargalhadas da mulata, sorrindo satisfeito porque sabia que, no dia seguinte, toda aquela gente voltaria a trabalhar para ele, desde o amanhecer até o cair da noite.'
   }
 ];
 
