@@ -1,42 +1,33 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { onAuthStateChanged } from 'firebase/auth';
-import React, { useEffect, useState } from 'react';
-import { StyleSheet } from 'react-native';
-import { auth } from '../../config/firebase.js'; // sobe duas pastas para achar o firebase
+import React, { useEffect } from 'react';
+import { auth } from '../../config/firebase.js'; // Sobe duas pastas para achar o arquivo de configuração do firebase
 
 export default function TabsLayout() {
-  const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
-    // monitora em tempo real se o usuario esta logado no firebase
+    // Esse listener monitora em tempo real se o usuário está logado ou não
     const desinscrever = onAuthStateChanged(auth, (usuario) => {
-      // TEMPORARIO: desabilitado para testes
-      // if (!usuario) {
-      //   // se nao houver usuario logado chuta ele direto para tela de login
-      //   router.replace('/login');
-      // }
-      // encerra a tela de carregamento
-      setCarregando(false);
+      /* 
+        TEMPORÁRIO: Deixamos a verificação comentada por enquanto para os testes
+        não barrarem vocês na tela de login caso o simulador deslogue.
+        
+        if (!usuario) {
+          router.replace('/login');
+        }
+      */
     });
 
-    // limpa o monitorador ao fechar o componente
+    // Função de limpeza que roda quando o componente é desmontado
     return desinscrever;
   }, []);
 
-  // enquanto o firebase responde mostra um icone de carregando na tela creme
-  // TEMPORARIO: desabilitado para testes
-  // if (carregando) {
-  //   return (
-  //     <View style={[styles.container, styles.centralizado]}>
-  //       <ActivityIndicator size="large" color="#a52a2a" />
-  //     </View>
-  //   );
-  // }
-
-  // estrutura de abas do menu inferior do aplicativo
+  // Toda a nossa estrutura de abas e rotas do app
   return (
     <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: '#a52a2a' }}>
+      
+      {/* Aba do Início (Visível no menu de baixo) */}
       <Tabs.Screen
         name="index"
         options={{
@@ -44,6 +35,8 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => <Ionicons name="home" size={24} color={color} />,
         }}
       />
+      
+      {/* 2. Aba da Biblioteca (Visível no menu de baixo) */}
       <Tabs.Screen
         name="biblioteca"
         options={{
@@ -51,6 +44,7 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => <Ionicons name="book" size={24} color={color} />,
         }}
       />
+      {/* 3. Aba do Perfil do Usuário (Visível no menu de baixo) */}
       <Tabs.Screen
         name="perfil"
         options={{
@@ -64,28 +58,50 @@ export default function TabsLayout() {
           href: null,
         }}
       />
+      
       <Tabs.Screen
         name="favoritos"
         options={{
           href: null,
         }}
       />
+      
       <Tabs.Screen
         name="comentariosLivro"
         options={{
           href: null,
         }}
       />
+      
+      <Tabs.Screen
+        name="meusComentarios"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="pesquisarAmigos"
+        options={{
+          title: 'Amigos',
+          tabBarIcon: ({ color }) => <Ionicons name="people" size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen 
+        name="perfilAmigo" 
+        options={{ 
+          href: null 
+        }} 
+      />
     </Tabs>
   );
 }
 
-// estilos da tela de carregamento inicial
-const styles = StyleSheet.create({
+// Estilos padrões da tela de carregamento do Entre Linhas
+/*const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff3dd', // cor creme padrao do entre linhas
+    backgroundColor: '#fff3dd', // Cor creme aconchegante do projeto
     justifyContent: 'center',
     alignItems: 'center',
   },
-});
+});*/

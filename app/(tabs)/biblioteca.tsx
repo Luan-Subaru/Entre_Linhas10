@@ -1,34 +1,40 @@
 // @ts-nocheck
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { addDoc, collection, onSnapshot, orderBy, query, Timestamp } from 'firebase/firestore';
+import { useRouter, useLocalSearchParams } from 'expo-router'; // Adicionado useLocalSearchParams aqui
+import { collection, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
-import {
-  ActivityIndicator, Alert, FlatList,
-  Image, Modal, SafeAreaView, ScrollView, StyleSheet,
-  Text, TextInput, TouchableOpacity,
-  View
-} from 'react-native';
-import { auth, db } from '../../config/firebase';
+import { ActivityIndicator, FlatList, Image, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { auth, db } from '../../config/firebase.js';
 
 interface Livro {
   id: string;
   titulo: string;
-  autores: string; 
-  capaUrl: string; 
+  autores: string;
+  capaUrl: string;
   genero: string;
-  descricao?: string;
-  conteudo?: string;
-  tipo?: 'google' | 'autoral';
+  editora?: string;
+  dataPublicacao?: string;
+  paginas?: string;
+  idioma?: string;
+  status?: 'Quero Ler' | 'Lendo' | 'Lido';
 }
 
 export default function BibliotecaScreen() {
   const router = useRouter();
+  
+  // Captura o gênero vindo por parâmetro da Tela de Perfil
+  const { filtroGenero } = useLocalSearchParams<{ filtroGenero?: string }>();
+
+  // Estados para controle de abas e carregamento
+  const [statusFiltro, setStatusFiltro] = useState<'Quero Ler' | 'Lendo' | 'Lido'>('Lendo');
+  const [carregandoGeral, setCarregandoGeral] = useState<boolean>(true);
+  const [atualizandoFeed, setAtualizandoFeed] = useState<boolean>(false);
+
+  // Estados para dados do Firestore (Lendo e Lido)
+  const [livrosSalvos, setLivrosSalvos] = useState<Livro[]>([]);
+
+  // Estados para dados da API do Google Books (Quero Ler / Recomendacoes)
   const [livrosFeed, setLivrosFeed] = useState<Livro[]>([]);
-  const [carregando, setCarregando] = useState<boolean>(true);
-  const [atualizando, setAtualizando] = useState<boolean>(false);
-  const [modalPublicar, setModalPublicar] = useState(false);
-  const [lendoLivro, setLendoLivro] = useState<Livro | null>(null);
   
   const [novoTitulo, setNovoTitulo] = useState('');
   const [novaDescricao, setNovaDescricao] = useState('');
@@ -36,24 +42,104 @@ export default function BibliotecaScreen() {
   const [novoGenero, setNovoGenero] = useState('');
   const [enviando, setEnviando] = useState(false);
 
-  const carregarTudo = async () => {
-    try {
-      setCarregando(true);
-      const q = query(collection(db, 'livros'), orderBy('dataPublicacao', 'desc'));
-      const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const livrosAutorais = [];
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          livrosAutorais.push({
-            id: doc.id,
-            titulo: data.titulo,
-            autores: data.autor,
-            capaUrl: data.capa || 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=1000&auto=format&fit=crop',
-            genero: data.genero || 'Autoral',
-            descricao: data.descricao,
-            conteudo: data.conteudo,
-            tipo: 'autoral'
+  // 1. Monitoramento em tempo real dos livros do Firestore (Abas Lendo e Lido)
+  useEffect(() => {
+    if (!usuarioAtual) {
+      setCarregandoGeral(false);
+      return;
+    }
+
+    const bibliotecaRef = collection(db, 'usuarios', usuarioAtual.uid, 'biblioteca');
+    
+    const desinscrever = onSnapshot(bibliotecaRef, (snapshot) => {
+      const lista: Livro[] = [];
+      snapshot.forEach((docSnap) => {
+        const dados = docSnap.data();
+        if (dados.titulo || dados.autor) {
+          lista.push({
+            id: docSnap.id,
+            titulo: dados.titulo || 'Título Desconhecido',
+            autores: dados.autor || 'Autor Desconhecido',
+            capaUrl: dados.capaUrl || 'https://via.placeholder.com/150x220.png?text=Sem+Capa',
+            genero: dados.genero || 'Não informado',
+            status: dados.status || 'Lendo',
           });
+        }
+      });
+      setLivrosSalvos(lista);
+      if (statusFiltro !== 'Quero Ler') {
+        setCarregandoGeral(false);
+      }
+    }, (error) => {
+      console.error("Erro ao carregando Firestore:", error);
+    });
+
+    return desinscrever;
+  }, [usuarioAtual, statusFiltro]);
+
+  // 2. Carregamento do feed do Google Books (Aba Quero Ler) alterado para aceitar gênero dinâmico
+  const carregarFeedDoGoogleBooks = async (generoEspecifico?: string) => {
+    try {
+      let generosDeBusca: string[] = [];
+
+      // Se veio um gênero do perfil, usamos apenas ele. Caso contrário, puxa a lista tradicional do banco
+      if (generoEspecifico) {
+        generosDeBusca = [generoEspecifico];
+      } else if (usuarioAtual) {
+        const userDocRef = doc(db, 'usuarios', usuarioAtual.uid);
+        const userSnap = await getDoc(userDocRef);
+        
+        if (userSnap.exists() && userSnap.data().generosFavoritos) {
+          generosDeBusca = userSnap.data().generosFavoritos;
+        }
+      }
+
+      if (!generosDeBusca || generosDeBusca.length === 0) {
+        generosDeBusca = ['Literatura', 'Ficção', 'Romance', 'História'];
+      }
+
+      const MINHA_API_KEY = "AIzaSyBvAOP06d-0yrvPMfubfG7eAQxh94Hyvdo";
+      let todosOsLivrosPuxados: Livro[] = [];
+      const idsVistos = new Set<string>();
+
+      const promessasDeBusca = generosDeBusca.map(async (genero) => {
+        try {
+          const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(`subject:"${genero}"`)}&maxResults=20&key=${MINHA_API_KEY}`;
+          const resposta = await fetch(url);
+          const dados = await resposta.json();
+          return dados.items || [];
+        } catch (err) {
+          console.log(`Erro ao buscar gênero ${genero}:`, err);
+          return [];
+        }
+      });
+
+      const resultadosPorGenero = await Promise.all(promessasDeBusca);
+
+      resultadosPorGenero.forEach((listaDeItens) => {
+        listaDeItens.forEach((item: any) => {
+          if (!idsVistos.has(item.id)) {
+            idsVistos.add(item.id);
+
+            const info = item.volumeInfo;
+            let capa = info.imageLinks?.thumbnail || 'https://via.placeholder.com/150x220.png?text=Sem+Capa';
+            if (capa.startsWith('http://')) {
+              capa = capa.replace('http://', 'https://');
+            }
+
+            todosOsLivrosPuxados.push({
+              id: item.id,
+              titulo: info.title || 'Sem Título',
+              autores: info.authors ? info.authors.join(', ') : 'Autor desconhecido',
+              capaUrl: capa,
+              genero: info.categories ? info.categories.join(', ') : 'Não informado',
+              editora: info.publisher || 'Não informada',
+              dataPublicacao: info.publishedDate || 'Não informada',
+              paginas: info.pageCount ? info.pageCount.toString() : 'Não informado',
+              idioma: info.language ? info.language.toUpperCase() : 'Não informado',
+              status: 'Quero Ler'
+            });
+          }
         });
         setLivrosFeed(livrosAutorais);
         setCarregando(false);
@@ -63,63 +149,108 @@ export default function BibliotecaScreen() {
         Alert.alert("Erro de Conexão", "Não foi possível conectar ao banco de dados.");
         setCarregando(false);
       });
-      return () => unsubscribe();
+
+      if (todosOsLivrosPuxados.length === 0) {
+        try {
+          const urlGeral = `https://www.googleapis.com/books/v1/volumes?q=Livros&maxResults=30&key=${MINHA_API_KEY}`;
+          const respostaGeral = await fetch(urlGeral);
+          const dadosGerais = await respostaGeral.json();
+          const itensGerais = dadosGerais.items || [];
+
+          itensGerais.forEach((item: any) => {
+            const info = item.volumeInfo;
+            let capa = info.imageLinks?.thumbnail || 'https://via.placeholder.com/150x220.png?text=Sem+Capa';
+            if (capa.startsWith('http://')) capa = capa.replace('http://', 'https://');
+
+            todosOsLivrosPuxados.push({
+              id: item.id,
+              titulo: info.title || 'Sem Título',
+              autores: info.authors ? info.authors.join(', ') : 'Autor desconhecido',
+              capaUrl: capa,
+              genero: info.categories ? info.categories.join(', ') : 'Geral',
+              editora: info.publisher || 'Não informada',
+              dataPublicacao: info.publishedDate || 'Não informada',
+              paginas: info.pageCount ? info.pageCount.toString() : 'Não informado',
+              idioma: info.language ? info.language.toUpperCase() : 'Não informado',
+              status: 'Quero Ler'
+            });
+          });
+        } catch (erroGeral) {
+          console.log("Erro ao buscar fallback geral:", erroGeral);
+        }
+      }
+
+      // Se for um filtro vindo do perfil, não embaralhamos para manter a precisão da categoria
+      const listaFinal = generoEspecifico ? todosOsLivrosPuxados : todosOsLivrosPuxados.sort(() => Math.random() - 0.5);
+      setLivrosFeed(listaFinal.slice(0, 30));
+
     } catch (error) {
-      setCarregando(false);
-    }
-  };
-
-  useEffect(() => {
-    carregarTudo();
-  }, []);
-
-  const handlePublicar = async () => {
-    console.log("Botão Publicar clicado");
-    
-    if (!novoTitulo || !novaDescricao || !novoConteudo) {
-      Alert.alert("Campos Vazios", "Por favor, preencha o título, sinopse e conteúdo.");
-      return;
-    }
-
-    setEnviando(true);
-    try {
-      console.log("Tentando salvar no Firebase...");
-      
-      const autorFinal = auth.currentUser?.email?.split('@')[0] || "Escritor Anônimo";
-      
-      await addDoc(collection(db, 'livros'), {
-        titulo: novoTitulo,
-        autor: autorFinal,
-        descricao: novaDescricao,
-        conteudo: novoConteudo,
-        genero: novoGenero || 'Autoral',
-        capa: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=1000&auto=format&fit=crop',
-        dataPublicacao: Timestamp.now(),
-        userId: auth.currentUser?.uid || 'anonimo'
-      });
-
-      console.log("Publicação realizada com sucesso!");
-      Alert.alert("Sucesso!", "Seu livro foi publicado!");
-      setModalPublicar(false);
-      setNovoTitulo('');
-      setNovaDescricao('');
-      setNovoConteudo('');
-      setNovoGenero('');
-    } catch (error) {
-      console.error("Erro ao publicar:", error);
-      Alert.alert("Erro ao Publicar", "O Firebase recusou a publicação. Verifique as regras de segurança ou sua conexão.");
+      console.error("Erro geral ao montar feed:", error);
     } finally {
-      setEnviando(false);
+      setCarregandoGeral(false);
+      setAtualizandoFeed(false);
     }
   };
+
+  // Modificado: Ouve as mudanças do parâmetro "filtroGenero" enviado pela tela de Perfil
+  useEffect(() => {
+    if (filtroGenero) {
+      setStatusFiltro('Quero Ler'); // Muda para a aba correta
+      setCarregandoGeral(true);
+      carregarFeedDoGoogleBooks(filtroGenero); // Executa a busca focada
+    } else {
+      carregarFeedDoGoogleBooks();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usuarioAtual, filtroGenero]);
+
+  const lidarComAtualizacaoFeed = () => {
+    setAtualizandoFeed(true);
+    carregarFeedDoGoogleBooks(filtroGenero);
+  };
+
+  const abrirDetalhesDoLivro = (livro: Livro) => {
+    router.push({
+      pathname: '/detalhes', 
+      params: { 
+        id: String(livro.id),
+        titulo: String(livro.titulo),
+        autores: String(livro.autores),
+        capaUrl: String(livro.capaUrl),
+        genero: String(livro.genero),
+        editora: String(livro.editora || 'Não informada'),
+        dataPublicacao: String(livro.dataPublicacao || 'Não informada'),
+        paginas: String(livro.paginas || 'Não informado'),
+        idioma: String(livro.idioma || 'Não informado')
+      }
+    });
+  };
+
+  const dadosLista = statusFiltro === 'Quero Ler' 
+    ? livrosFeed 
+    : livrosSalvos.filter(livro => livro.status === statusFiltro);
 
   const renderItem = ({ item }: { item: Livro }) => (
-    <TouchableOpacity style={styles.cardLivro} onPress={() => setLendoLivro(item)}>
+    <TouchableOpacity 
+      style={styles.cardLivro} 
+      onPress={() => abrirDetalhesDoLivro(item)}
+      activeOpacity={0.8}
+    >
       <Image source={{ uri: item.capaUrl }} style={styles.capaLivro} />
+      
       <View style={styles.infoLivro}>
-        <Text style={styles.tituloLivro} numberOfLines={2}>{item.titulo}</Text>
-        <Text style={styles.autorLivro}>por {item.autores}</Text>
-        <View style={styles.badge}><Text style={styles.badgeText}>{item.genero}</Text></View>
+        <View>
+          <Text style={styles.tituloLivro} numberOfLines={2}>{item.titulo}</Text>
+          <Text style={styles.autorLivro} numberOfLines={1}>por {item.autores}</Text>
+          {statusFiltro === 'Quero Ler' && (
+            <Text style={styles.tagGeneroMini} numberOfLines={1}>{item.genero}</Text>
+          )}
+        </View>
+        
+        <View style={styles.containerVerMais}>
+          <Text style={styles.textoVerMais}>Ver detalhes</Text>
+          <Ionicons name="chevron-forward" size={14} color="#a52a2a" />
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -127,21 +258,57 @@ export default function BibliotecaScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.tituloPagina}>Biblioteca</Text>
-        <TouchableOpacity onPress={() => setModalPublicar(true)}>
-          <Ionicons name="add-circle" size={45} color="#a52a2a" />
-        </TouchableOpacity>
+        <Text style={styles.tituloPagina}>Minha Estante</Text>
+        <Text style={styles.subtitulo}>
+          {statusFiltro === 'Quero Ler' && filtroGenero 
+            ? `Filtrando por: ${filtroGenero}` 
+            : statusFiltro === 'Quero Ler' 
+              ? "Recomendações baseadas nos seus gêneros" 
+              : "Organize suas leituras atuais e finalizadas"}
+        </Text>
       </View>
 
-      {carregando ? (
-        <View style={styles.centralizado}><ActivityIndicator size="large" color="#a52a2a" /></View>
+      {/* Menu Seletor de Abas */}
+      <View style={styles.containerAbas}>
+        {(['Lendo', 'Quero Ler', 'Lido'] as const).map((status) => (
+          <TouchableOpacity
+            key={status}
+            style={[styles.aba, statusFiltro === status && styles.abaAtiva]}
+            onPress={() => setStatusFiltro(status)}
+          >
+            <Text style={[styles.textoAba, statusFiltro === status && styles.textoAbaAtiva]}>
+              {status}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {carregandoGeral ? (
+        <View style={styles.centralizado}>
+          <ActivityIndicator size="large" color="#a52a2a" />
+        </View>
+      ) : dadosLista.length === 0 ? (
+        <View style={styles.centralizado}>
+          <Ionicons name="book-outline" size={48} color="#bc9e82" />
+          <Text style={styles.textoVazio}>Nenhum livro encontrado em &quot;{statusFiltro}&quot;.</Text>
+        </View>
       ) : (
         <FlatList
-          data={livrosFeed}
+          data={dadosLista}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}
-          ListEmptyComponent={<Text style={styles.vazio}>Nenhum livro publicado ainda.</Text>}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            statusFiltro === 'Quero Ler' ? (
+              <RefreshControl
+                refreshing={atualizandoFeed}
+                onRefresh={lidarComAtualizacaoFeed}
+                tintColor="#a52a2a"
+                colors={["#a52a2a"]}
+              />
+            ) : undefined
+          }
         />
       )}
 
@@ -183,25 +350,123 @@ export default function BibliotecaScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff3dd', paddingTop: 50 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, alignItems: 'center' },
-  tituloPagina: { fontSize: 28, fontWeight: 'bold', color: '#3e2723' },
-  lista: { padding: 20 },
-  cardLivro: { flexDirection: 'row', backgroundColor: '#fff', padding: 15, borderRadius: 10, marginBottom: 15, elevation: 3 },
-  capaLivro: { width: 60, height: 90, borderRadius: 5 },
-  infoLivro: { marginLeft: 15, flex: 1 },
-  tituloLivro: { fontSize: 18, fontWeight: 'bold', color: '#3e2723' },
-  autorLivro: { fontSize: 14, color: '#a52a2a' },
-  badge: { backgroundColor: '#a52a2a', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 5, marginTop: 5, alignSelf: 'flex-start' },
-  badgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
-  modal: { flex: 1, backgroundColor: '#fff3dd' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, alignItems: 'center' },
-  modalTitulo: { fontSize: 20, fontWeight: 'bold', color: '#3e2723' },
-  input: { backgroundColor: '#fff', padding: 15, borderRadius: 10, marginBottom: 15, fontSize: 16 },
-  botao: { backgroundColor: '#a52a2a', padding: 18, borderRadius: 10, alignItems: 'center' },
-  botaoTexto: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  centralizado: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  vazio: { textAlign: 'center', marginTop: 50, color: '#a52a2a' },
-  leitura: { flex: 1, backgroundColor: '#fffcf5' },
-  textoLeitura: { fontSize: 18, lineHeight: 28, color: '#3e2723' }
+  container: {
+    flex: 1,
+    backgroundColor: '#fff3dd',
+    paddingTop: 60,
+  },
+  centralizado: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  lista: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  header: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  tituloPagina: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#3e2723',
+  },
+  subtitulo: {
+    fontSize: 14,
+    color: '#a52a2a',
+    marginTop: 5,
+  },
+  containerAbas: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    gap: 8,
+  },
+  aba: {
+    flex: 1,
+    height: 38,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(165,42,42,0.1)',
+  },
+  abaAtiva: {
+    backgroundColor: '#a52a2a',
+    borderColor: '#a52a2a',
+  },
+  textoAba: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#795548',
+  },
+  textoAbaAtiva: {
+    color: '#fff',
+  },
+  cardLivro: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 15,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  capaLivro: {
+    width: 70,
+    height: 105,
+    borderRadius: 6,
+    backgroundColor: '#eee',
+  },
+  infoLivro: {
+    flex: 1,
+    marginLeft: 15,
+    justifyContent: 'space-between',
+  },
+  tituloLivro: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#3e2723',
+  },
+  autorLivro: {
+    fontSize: 14,
+    color: '#795548',
+    marginTop: 2,
+  },
+  tagGeneroMini: {
+    fontSize: 11,
+    color: '#a52a2a',
+    backgroundColor: 'rgba(165,42,42,0.08)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    fontWeight: 'bold',
+  },
+  containerVerMais: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    marginTop: 5,
+  },
+  textoVerMais: {
+    color: '#a52a2a',
+    fontSize: 13,
+    fontWeight: '600',
+    marginRight: 4,
+  },
+  textoVazio: {
+    marginTop: 10,
+    color: '#795548',
+    textAlign: 'center',
+    fontSize: 16,
+  }
 });

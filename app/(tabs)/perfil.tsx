@@ -46,7 +46,6 @@ export default function TelaPerfil() {
             const nomeCompleto = `${dados.nome || 'Leitor'} ${dados.sobrenome || ''}`.trim();
             setNome(nomeCompleto);
             setFotoUri(dados.fotoUrl || null);
-            // carrega os gêneros que o usuário já tinha salvo antes
             setGenerosSelecionados(dados.generosFavoritos || []);
           }
         } catch (error) {
@@ -59,7 +58,7 @@ export default function TelaPerfil() {
     buscarDadosPerfil();
   }, [usuarioAtual]);
 
-  // função para selecionar/desmarcar um gênero e salvar no Firestore
+  // Altera a preferência no banco e no estado
   const alternarGenero = async (generoId: string) => {
     if (!usuarioAtual) return;
 
@@ -73,9 +72,7 @@ export default function TelaPerfil() {
           generosFavoritos: arrayRemove(generoId)
         });
       } else {
-        // Adiciona no estado local
         setGenerosSelecionados(prev => [...prev, generoId]);
-        // Adiciona no Firestore usando arrayUnion
         await updateDoc(docRef, {
           generosFavoritos: arrayUnion(generoId)
         });
@@ -84,6 +81,14 @@ export default function TelaPerfil() {
       console.log('Erro ao atualizar gêneros favoritos:', error);
       Alert.alert('Erro', 'Não foi possível salvar sua preferência.');
     }
+  };
+
+  //Redireciona para a biblioteca filtrando pelo gênero clicado
+  const buscarLivrosDoGenero = (generoId: string) => {
+    router.push({
+      pathname: '/biblioteca',
+      params: { filtroGenero: generoId }
+    });
   };
 
   // Função para alterar foto de perfil
@@ -109,7 +114,7 @@ export default function TelaPerfil() {
         try {
           const docRef = doc(db, 'usuarios', usuarioAtual.uid);
           await updateDoc(docRef, { fotoUrl: uriSelecionada });
-          Alert.alert('Sucesso', 'Foto de perfil atualizada!');
+          Alert.alert('Sucesso', 'Foto de perfil updated!');
         } catch (error) {
           console.log('Erro ao salvar foto no Firestore:', error);
         }
@@ -145,7 +150,6 @@ export default function TelaPerfil() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      {/* Bloco do Topo com o Avatar */}
       <View style={styles.containerTopo}>
         <TouchableOpacity style={styles.containerAvatar} onPress={selecionarFoto} activeOpacity={0.8}>
           <Image source={{ uri: fotoUri || FOTO_PADRAO }} style={styles.avatar} />
@@ -157,10 +161,9 @@ export default function TelaPerfil() {
         <Text style={styles.textoEmail}>{email}</Text>
       </View>
 
-      {/* NOVA SEÇÃO: Gêneros Favoritos */}
       <View style={styles.secaoGeneros}>
         <Text style={styles.tituloSecao}>Meus Gêneros Favoritos</Text>
-        <Text style={styles.subtituloSecao}>Selecione para personalizar seu feed:</Text>
+        <Text style={styles.subtituloSecao}>Toque para selecionar. Segure para ver recomendações:</Text>
         
         <View style={styles.containerTags}>
           {GENEROS_GOOGLE_BOOKS.map((genero) => {
@@ -170,6 +173,7 @@ export default function TelaPerfil() {
                 key={genero.id}
                 style={[styles.tag, ativo && styles.tagAtiva]}
                 onPress={() => alternarGenero(genero.id)}
+                onLongPress={() => buscarLivrosDoGenero(genero.id)}
                 activeOpacity={0.7}
               >
                 <Text style={[styles.textoTag, ativo && styles.textoTagAtiva]}>
@@ -181,7 +185,6 @@ export default function TelaPerfil() {
         </View>
       </View>
 
-      {/* Menu de Opções */}
       <View style={styles.containerMenu}>
         <TouchableOpacity style={styles.botaoMenu} onPress={() => router.push('/favoritos')}>
           <View style={styles.ladoEsquerdoMenu}>
@@ -191,7 +194,7 @@ export default function TelaPerfil() {
           <Ionicons name="chevron-forward" size={18} color="#bc9e82" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.botaoMenu} onPress={() => console.log('Abrir comentários')}>
+        <TouchableOpacity style={styles.botaoMenu} onPress={() => router.push('/meusComentarios')}>
           <View style={styles.ladoEsquerdoMenu}>
             <Ionicons name="chatbubble-ellipses" size={22} color="#a52a2a" style={styles.iconeMenu} />
             <Text style={styles.textoBotaoMenu}>Meus Comentários</Text>

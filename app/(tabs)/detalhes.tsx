@@ -5,10 +5,11 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { auth, db } from '../../config/firebase.js';
 
+type StatusTipo = 'Quero Ler' | 'Lendo' | 'Lido' | null;
+
 export default function TelaDetalhes() {
   const router = useRouter();
   
-  // Parâmetros vindos da tela de pesquisa
   const { id, titulo, autores, editora, dataPublicacao, paginas, idioma, genero, capaUrl } = useLocalSearchParams<{
     id: string;
     titulo: string;
@@ -24,6 +25,9 @@ export default function TelaDetalhes() {
   const [totalFavoritos, setTotalFavoritos] = useState<number>(0);
   const [jaFavoritou, setJaFavoritou] = useState<boolean>(false);
   const [carregandoFavorito, setCarregandoFavorito] = useState<boolean>(true);
+  
+  const [statusLeitura, setStatusLeitura] = useState<StatusTipo>(null);
+  const [salvandoStatus, setSalvandoStatus] = useState<boolean>(false);
 
   const usuarioAtual = auth.currentUser;
 
@@ -50,84 +54,105 @@ export default function TelaDetalhes() {
       setCarregandoFavorito(false);
     });
 
+    // Busca o status de leitura salvo na subcolecao biblioteca do usuario atual
+    if (usuarioAtual) {
+      const bibRef = doc(db, 'usuarios', usuarioAtual.uid, 'biblioteca', id);
+      getDoc(bibRef).then((docSnap) => {
+        if (docSnap.exists()) {
+          setStatusLeitura(docSnap.data().status || null);
+        }
+      }).catch(err => console.log("Erro ao buscar status do livro:", err));
+    }
+
     return () => unsubscribe();
   }, [id, usuarioAtual]);
 
-  // Função de navegação corrigida e com teste de clique
   const irParaComentarios = () => {
     if (!id) {
       Alert.alert("Erro", "ID do livro não encontrado para abrir os comentários.");
       return;
     }
-
-    try {
-      // Tenta navegar usando a rota absoluta. 
-      // Se seu arquivo estiver dentro de uma pasta (ex: (tabs)/comentariosLivro), mude para '/(tabs)/comentariosLivro'
-      router.push({
-        pathname: '/comentariosLivro', 
-        params: {
-          id: String(id),
-          titulo: String(titulo || 'Livro'),
-        },
-      });
-    } catch (error) {
-      console.error("Erro na navegação:", error);
-      Alert.alert("Erro de Rota", "Verifique se o arquivo comentariosLivro.tsx está na pasta correta do Expo Router.");
-    }
+    router.push({
+      pathname: '/comentariosLivro', 
+      params: { id: String(id), titulo: String(titulo || 'Livro') },
+    });
   };
 
-  // favoritar / desfavoritar
-  const alternarFavorito = async () => {
+  // Atualiza o status de leitura do livro garantindo a correspondencia com a tela da biblioteca
+  const atualizarStatusLeitura = async (novoStatus: StatusTipo) => {
     if (!usuarioAtual) {
-      Alert.alert('Erro', 'Você precisa estar logado para favoritar um livro.');
+      Alert.alert('Erro', 'Você precisa estar logado para atualizar o status.');
       return;
     }
 
-    const docRef = doc(db, 'livros', id);
+    setSalvandoStatus(true);
+    const libroGeralRef = doc(db, 'livros', id);
+    const livroUsuarioRef = doc(db, 'usuarios', usuarioAtual.uid, 'biblioteca', id);
 
     try {
-      const docSnap = await getDoc(docRef);
-
-      if (!docSnap.exists()) {
-        await setDoc(docRef, {
-          titulo: titulo || 'Sem Título',
-          autores: autores || 'Autor desconhecido',
-          editora: editora || 'Não informada',
-          dataPublicacao: dataPublicacao || 'Não informada',
-          paginas: paginas || 'Não informado',
-          idioma: idioma || 'Não informado',
-          genero: genero || 'Não informado',
-          capaUrl: capaUrl || '',
-          totalFavoritos: 1,
-          usuariosQueFavoritaram: [usuarioAtual.uid]
+      if (novoStatus === null) {
+        // Se removeu o status, limpa a estante do usuario
+        await setDoc(livroUsuarioRef, {}, { merge: false });
+        
+        // Remove tambem o vinculo do usuario com o documento global do livro
+        await updateDoc(libroGeralRef, {
+          totalFavoritos: increment(-1),
+          usuariosQueFavoritaram: arrayRemove(usuarioAtual.uid)
         });
-        setJaFavoritou(true);
+        
+        setStatusLeitura(null);
+        setJaFavoritou(false);
       } else {
-        if (jaFavoritou) {
-          await updateDoc(docRef, {
-            totalFavoritos: increment(-1),
-            usuariosQueFavoritaram: arrayRemove(usuarioAtual.uid)
+        // 1. Salva na subcolecao biblioteca do usuario logado (para as abas Lendo/Lido)
+        await setDoc(livroUsuarioRef, {
+          titulo: titulo || 'Sem Título',
+          autor: autores || 'Autor desconhecido',
+          capaUrl: capaUrl || '',
+          genero: genero || 'Não informado',
+          status: novoStatus,
+          atualizadoEm: new Date()
+        }, { merge: true });
+
+        // 2. Garante a criacao ou atualizacao do documento na colecao global 'livros' 
+        const docSnapGeral = await getDoc(libroGeralRef);
+        
+        if (!docSnapGeral.exists()) {
+          // Se o livro nao existia no banco global, cria injetando todas as propriedades
+          await setDoc(libroGeralRef, {
+            titulo: titulo || 'Sem Título',
+            autores: autores || 'Autor desconhecido',
+            capaUrl: capaUrl || '',
+            editora: editora || 'Não informada',
+            dataPublicacao: dataPublicacao || 'Não informada',
+            paginas: paginas || 'Não informado',
+            idioma: idioma || 'Não informado',
+            genero: genero || 'Não informado',
+            totalFavoritos: 1,
+            usuariosQueFavoritaram: [usuarioAtual.uid]
           });
-          setJaFavoritou(false);
-        } else {
-          await updateDoc(docRef, {
-            titulo: titulo || docSnap.data().titulo,
-            autores: autores || docSnap.data().autores,
-            capaUrl: capaUrl || docSnap.data().capaUrl,
-            editora: editora || docSnap.data().editora,
-            dataPublicacao: dataPublicacao || docSnap.data().dataPublicacao,
-            paginas: paginas || docSnap.data().paginas,
-            idioma: idioma || docSnap.data().idioma,
-            genero: genero || docSnap.data().genero,
+        } else if (!jaFavoritou) {
+          // Se o livro ja existe mas o usuario nao estava no array, adiciona-o e incrementa o contador
+          await updateDoc(libroGeralRef, {
             totalFavoritos: increment(1),
             usuariosQueFavoritaram: arrayUnion(usuarioAtual.uid)
           });
-          setJaFavoritou(true);
         }
+
+        setStatusLeitura(novoStatus);
+        setJaFavoritou(true);
       }
     } catch (error) {
-      console.log("Erro ao atualizar favorito no Firebase:", error);
-      Alert.alert('Erro', 'Não foi possível salvar sua ação. Tente novamente.');
+      console.error("Erro ao salvar status de leitura:", error);
+      Alert.alert("Erro", "Não foi possível atualizar o status de leitura.");
+    } finally {
+      setSalvandoStatus(false);
+    }
+  };
+  const alternarFavoritoAntigo = async () => {
+    if (statusLeitura) {
+      await atualizarStatusLeitura(null);
+    } else {
+      await atualizarStatusLeitura('Quero Ler');
     }
   };
 
@@ -151,9 +176,31 @@ export default function TelaDetalhes() {
             <ActivityIndicator size="small" color="#a52a2a" style={{ marginLeft: 5 }} />
           ) : (
             <Text style={styles.textoContadorFavoritos}>
-              {totalFavoritos} {totalFavoritos === 1 ? 'pessoa favoritou' : 'pessoas favoritaram'}
+              {totalFavoritos === 1 ? "1 pessoa favoritou" : `${totalFavoritos} pessoas favoritaram`}
             </Text>
           )}
+        </View>
+
+        {/* Componente seletor para alteracao de status */}
+        <View style={styles.containerStatusLivro}>
+          <Text style={styles.tituloStatus}>Status de Leitura:</Text>
+          <View style={styles.grupoBotoesStatus}>
+            {(['Lendo', 'Quero Ler', 'Lido'] as const).map((status) => {
+              const ativo = statusLeitura === status;
+              return (
+                <TouchableOpacity
+                  key={status}
+                  style={[styles.botaoStatus, ativo && styles.botaoStatusAtivo]}
+                  disabled={salvandoStatus}
+                  onPress={() => atualizarStatusLeitura(status)}
+                >
+                  <Text style={[styles.textoBotaoStatus, ativo && styles.textoBotaoStatusAtivo]}>
+                    {status}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
         <View style={styles.divisor} />
@@ -182,12 +229,11 @@ export default function TelaDetalhes() {
         </View>
       </ScrollView>
 
-      {/* Container de botões com estilo zIndex para garantir clique no celular físico */}
       <View style={styles.containerBotoes}>
         <TouchableOpacity 
           style={[styles.botao, styles.botaoFavoritar, jaFavoritou && styles.botaoJaFavoritado]} 
-          onPress={alternarFavorito}
-          disabled={carregandoFavorito}
+          onPress={alternarFavoritoAntigo}
+          disabled={carregandoFavorito || salvandoStatus}
           activeOpacity={0.7}
         >
           <Ionicons 
@@ -197,7 +243,7 @@ export default function TelaDetalhes() {
             style={{ marginRight: 8 }} 
           />
           <Text style={styles.textoBotao}>
-            {jaFavoritou ? "Favoritado" : "Favoritar"}
+            {jaFavoritou ? `Salvo (${statusLeitura || 'Favorito'})` : "Salvar na Estante"}
           </Text>
         </TouchableOpacity>
 
@@ -220,15 +266,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff3dd',
     paddingTop: 50,
   },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    alignItems: 'center',
+  },
   botaoVoltar: {
     paddingHorizontal: 20,
     paddingVertical: 10,
     alignSelf: 'flex-start',
   },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-    alignItems: 'center',
+  divisor: {
+    width: '100%',
+    height: 1,
+    backgroundColor: 'rgba(165,42,42,0.1)',
+    marginVertical: 15,
   },
   capaGrande: {
     width: 160,
@@ -262,7 +314,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
-    marginBottom: 5,
+    marginBottom: 15,
   },
   textoContadorFavoritos: {
     fontSize: 14,
@@ -270,11 +322,47 @@ const styles = StyleSheet.create({
     color: '#a52a2a',
     marginLeft: 6,
   },
-  divisor: {
+  containerStatusLivro: {
     width: '100%',
-    height: 1,
-    backgroundColor: 'rgba(165,42,42,0.1)',
-    marginVertical: 15,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(165,42,42,0.1)',
+    marginTop: 5,
+  },
+  tituloStatus: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#3e2723',
+    marginBottom: 10,
+  },
+  grupoBotoesStatus: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  botaoStatus: {
+    flex: 1,
+    height: 36,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  botaoStatusAtivo: {
+    backgroundColor: '#a52a2a',
+    borderColor: '#a52a2a',
+  },
+  textoBotaoStatus: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#757575',
+  },
+  textoBotaoStatusAtivo: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
   containerInfo: {
     width: '100%',
@@ -312,7 +400,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: 'rgba(165,42,42,0.1)',
     gap: 12,
-    // Adicionado zIndex e elevation para garantir que a barra fique por cima de tudo e clique perfeitamente
     zIndex: 99,
     elevation: 10,
   },
@@ -328,7 +415,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#a52a2a',
   },
   botaoJaFavoritado: {
-    backgroundColor: '#27ae60', 
+    backgroundColor: '#27ae60',
   },
   botaoComentar: {
     backgroundColor: '#3e2723',
