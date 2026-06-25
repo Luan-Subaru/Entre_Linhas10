@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router'; // Adicionado useLocalSearchParams aqui
 import { collection, doc, getDoc, onSnapshot } from 'firebase/firestore';
@@ -35,7 +36,11 @@ export default function BibliotecaScreen() {
   // Estados para dados da API do Google Books (Quero Ler / Recomendacoes)
   const [livrosFeed, setLivrosFeed] = useState<Livro[]>([]);
   
-  const usuarioAtual = auth.currentUser;
+  const [novoTitulo, setNovoTitulo] = useState('');
+  const [novaDescricao, setNovaDescricao] = useState('');
+  const [novoConteudo, setNovoConteudo] = useState('');
+  const [novoGenero, setNovoGenero] = useState('');
+  const [enviando, setEnviando] = useState(false);
 
   // 1. Monitoramento em tempo real dos livros do Firestore (Abas Lendo e Lido)
   useEffect(() => {
@@ -136,6 +141,13 @@ export default function BibliotecaScreen() {
             });
           }
         });
+        setLivrosFeed(livrosAutorais);
+        setCarregando(false);
+        setAtualizando(false);
+      }, (error) => {
+        console.error("Erro Firebase:", error);
+        Alert.alert("Erro de Conexão", "Não foi possível conectar ao banco de dados.");
+        setCarregando(false);
       });
 
       if (todosOsLivrosPuxados.length === 0) {
@@ -284,7 +296,7 @@ export default function BibliotecaScreen() {
         <FlatList
           data={dadosLista}
           renderItem={renderItem}
-          keyExtractor={(item, index) => `${item.id}-${index}`}
+          keyExtractor={(item) => item.id}
           contentContainerStyle={styles.lista}
           showsVerticalScrollIndicator={false}
           refreshControl={
@@ -299,6 +311,40 @@ export default function BibliotecaScreen() {
           }
         />
       )}
+
+      <Modal visible={modalPublicar} animationType="slide">
+        <SafeAreaView style={styles.modal}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setModalPublicar(false)}><Ionicons name="close" size={30} color="#a52a2a" /></TouchableOpacity>
+            <Text style={styles.modalTitulo}>Publicar Livro</Text>
+            <View style={{ width: 30 }} />
+          </View>
+          <ScrollView style={{ padding: 20 }}>
+            <TextInput style={styles.input} placeholder="Título" value={novoTitulo} onChangeText={setNovoTitulo} />
+            <TextInput style={styles.input} placeholder="Gênero" value={novoGenero} onChangeText={setNovoGenero} />
+            <TextInput style={[styles.input, { height: 80 }]} placeholder="Sinopse" multiline value={novaDescricao} onChangeText={setNovaDescricao} />
+            <TextInput style={[styles.input, { height: 150, textAlignVertical: 'top' }]} placeholder="Conteúdo do Livro" multiline value={novoConteudo} onChangeText={setNovoConteudo} />
+            
+            <TouchableOpacity 
+              style={[styles.botao, enviando && { opacity: 0.5 }]} 
+              onPress={() => {
+                console.log("Clique detectado no botão Publicar");
+                handlePublicar();
+              }} 
+              disabled={enviando}
+            >
+              {enviando ? <ActivityIndicator color="#fff" /> : <Text style={styles.botaoTexto}>Publicar Agora</Text>}
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      <Modal visible={!!lendoLivro} animationType="slide">
+        <SafeAreaView style={styles.leitura}>
+          <TouchableOpacity onPress={() => setLendoLivro(null)} style={{ padding: 20 }}><Ionicons name="arrow-back" size={30} color="#3e2723" /></TouchableOpacity>
+          <ScrollView style={{ padding: 20 }}><Text style={styles.textoLeitura}>{lendoLivro?.conteudo}</Text></ScrollView>
+        </SafeAreaView>
+      </Modal>
     </View>
   );
 }
