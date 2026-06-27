@@ -1,28 +1,26 @@
 // @ts-nocheck
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-  collection,
-  doc,
-  getDoc,
-  onSnapshot,
   addDoc,
+  collection,
+  onSnapshot,
   serverTimestamp,
 } from "firebase/firestore";
-import React, { useEffect, useState, useLayoutEffect } from "react";
+import React, { useEffect, useLayoutEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
+  Modal,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
-  Modal,
-  TextInput,
-  ScrollView,
-  Alert,
 } from "react-native";
 import { auth, db } from "../../config/firebase.js";
 
